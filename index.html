@@ -346,7 +346,7 @@ function createPage(){
     <div class="chips">${[9,18].map(n=>`<button data-a="hs" data-n="${n}" class="${S.holes===n?'on':''}">${n} holes</button>`).join('')}</div>
     <div class="opt"><span id="maxLbl">Max strokes per hole</span><button class="sw ${S.maxOn?'on':''}" data-a="maxt" role="switch" aria-checked="${S.maxOn}" aria-labelledby="maxLbl"></button></div>
     ${S.maxOn?`<div class="maxs"><div class="v">${S.maxS}<small>stroke${S.maxS===1?'':'s'}</small></div><div class="ar"><button data-a="maxd" aria-label="Lower max strokes" ${S.maxS<=1?'disabled':''}>${ICON.down}</button><button data-a="maxu" aria-label="Raise max strokes" ${S.maxS>=20?'disabled':''}>${ICON.up}</button></div></div>`:''}
-    <button class="primary" data-a="create" ${S.creating||!db?'disabled':''}>${S.creating?'Creating…':'Create game'}</button></div></div>`;
+    <button class="primary" data-a="create" ${S.creating||!db?'disabled':''}>${S.creating?'Creating…':'Create'}</button></div></div>`;
 }
 function joinPage(){
   return `<div class="brand"><button class="xbtn" data-a="back" aria-label="Back">${ICON.back}</button><span>Join a game</span></div>
