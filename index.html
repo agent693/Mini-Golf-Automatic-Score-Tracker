@@ -114,7 +114,7 @@ td.t{font-weight:800;color:var(--bl);font-size:18px}
 .bar{height:8px;border-radius:4px;background:rgba(255,255,255,.35);overflow:hidden}
 .bar i{display:block;height:100%;background:#fff;width:var(--a);animation:grow .6s 1.8s ease-out forwards}
 @keyframes grow{to{width:var(--b)}}
-.ovc .primary{background:#fff;color:var(--or)}
+.ov.out{animation:fadeout .35s ease-in forwards}@keyframes fadeout{to{opacity:0}}
 .endrow{display:flex;gap:10px}.endrow .primary{flex:1;background:#fff;color:var(--or)}.endrow .primary:first-child{color:var(--bl)}
 .pic{-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;display:block;width:100%;border-radius:16px;margin:12px 0;box-shadow:0 4px 14px rgba(0,0,0,.12)}
 /* final */
@@ -424,8 +424,10 @@ function showTransition(g){
     <div class="card">${rows.map((r,i)=>`<div class="lbr" style="animation-delay:${.1+i*.09}s"><span class="rk">${r.rank}</span><span class="nm">${esc(nameOf(g,r.pid))}</span><span class="sc">${r.tot}</span></div>`).join('')}</div>
     <div class="next"><span>Hole</span><span class="flip"><b class="o">${h}</b><b class="n">${h+1}</b></span><span>of ${g.holes}</span></div>
     <div class="bar"><i style="--a:${(h/g.holes*100).toFixed(1)}%;--b:${((h+1)/g.holes*100).toFixed(1)}%"></i></div>
-    <button class="primary" data-a="ovclose">Continue</button></div></div>`;
-  clearTimeout(showTransition.t); showTransition.t=setTimeout(()=>{ o.innerHTML=''; },7000);
+    </div></div>`;
+  clearTimeout(showTransition.t); clearTimeout(showTransition.u);
+  showTransition.t=setTimeout(()=>{ const ov=o.querySelector('.ov'); if(ov) ov.classList.add('out'); },3300);
+  showTransition.u=setTimeout(()=>{ o.innerHTML=''; },3650);
 }
 function finishFinal(){
   document.querySelectorAll('#fin .cnt').forEach(c=>c.textContent=c.dataset.to);
