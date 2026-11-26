@@ -202,7 +202,7 @@ function route(){
   if(gid===S.gid && (gid==='' || unsubG)) return render();
   unsubG&&unsubG(); unsubG=null;
   Object.assign(S,{gid,game:null,players:[],loaded:false,slow:false,joined:false,lastSeen:undefined,sheet:null,proxy:false,finalKey:'',png:null});
-  $('#ovl').innerHTML='';
+  $('#ovl').innerHTML=''; document.querySelectorAll('.conf').forEach(c=>c.remove());
   if(gid){ ls.set('mg_gid',gid); if(db) subscribe(); }
   render();
 }
@@ -293,7 +293,7 @@ async function endOrLeave(){
   render();
 }
 /* ---------- views ---------- */
-const shell=(inner,x)=>`<div class="brand">${ICON.logo}<span>Mini Golf</span>${x?`<button class="xbtn" data-a="endask" aria-label="${x}">${ICON.x}</button>`:''}</div>${inner}`;
+const shell=(inner,x)=>`<div class="brand">${ICON.logo}<span>Mini Golf</span>${x?`<button class="xbtn" data-a="endask" aria-label="${x}">${ICON.x}</button>`:''}</div><div class="mid">${inner}</div>`;
 function home(){
   return shell(`<div class="card"><h1>New game</h1><p class="muted">Pick the course length, then invite your group.</p>
     <label>Number of holes</label>
