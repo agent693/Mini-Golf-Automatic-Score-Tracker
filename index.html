@@ -13,7 +13,6 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="manifest" href="manifest.webmanifest">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="config.js"></script>
@@ -97,8 +96,6 @@ input[type=text]:focus{border-color:var(--or);outline:0}
 .sheet .row{display:flex;gap:10px;margin-top:20px}.sheet .row>*{flex:1;margin:0}
 .bigq{font-size:30px;font-weight:800;color:var(--bl);margin:4px 0}
 @keyframes up{from{transform:translateY(100%)}}@keyframes fade{from{opacity:0}}
-.qr{display:grid;place-items:center;margin:14px 0}.qr svg{width:200px;height:200px}
-.code{font-size:28px;font-weight:800;letter-spacing:.06em;color:var(--or);text-align:center}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 th,td{padding:10px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
@@ -322,7 +319,7 @@ function hostLobby(g){
   const others=S.players.filter(p=>p.id!==S.pid);
   return shell(`<div class="card shrink"><p class="kick">${g.holes} holes · code ${esc(S.gid.slice(1).toUpperCase())}</p><h1>Lobby</h1>
     <label for="hostName">Your name</label><input type="text" id="hostName" maxlength="24" autocomplete="off" value="${esc(S.hostName)}" placeholder="Enter your name">
-    <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Share invite link</button>
+    <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Share invite</button>
     <h3>Players joined · ${others.length}</h3>
     <div class="fill">${others.length?`<ul class="plist">${others.map(p=>`<li><span class="av">${initial(p.name)}</span><span>${esc(p.name)}</span></li>`).join('')}</ul>`:'<p class="muted">No one yet. Share the invite so friends can join.</p>'}</div>
     <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start game</button></div>`,'Cancel game');
@@ -387,13 +384,6 @@ function sheet(){
     const cur=g.order[g.turn];
     body=`${cur!==S.pid?`<p class="kick">For ${esc(nameOf(g,cur))}</p>`:''}<div class="bigq">Submit ${S.draft} stroke${S.draft===1?'':'s'}?</div><p class="muted">This can't be changed after it's in.</p>
       <div class="row"><button class="ghost" data-a="close">Cancel</button><button class="primary" data-a="yes" style="margin:0">Submit</button></div>`;
-  } else if(S.sheet==='share'){
-    const url=APP_URL?APP_URL+'#'+S.gid:'';
-    let qr=''; try{ if(url && window.qrcode){ const q=qrcode(0,'M'); q.addData(url); q.make(); qr=q.createSvgTag({cellSize:4,margin:2,scalable:true}); } }catch(e){}
-    body=`<h2>Invite players</h2><p class="muted">Friends scan this code or open the link to join.</p>
-      ${qr?`<div class="qr">${qr}</div>`:''}<div class="code">${esc(S.gid.slice(1).toUpperCase())}</div>
-      ${url?`<input type="text" id="shareUrl" readonly value="${esc(url)}"><div class="row">${navigator.share?'<button class="primary" data-a="nshare" style="margin:0">Send link</button>':''}<button class="${navigator.share?'ghost blue':'primary'}" data-a="copy" style="margin:0">Copy link</button></div>`:''}
-      <div class="row"><button class="ghost" data-a="close">Done</button></div>`;
   } else if(S.sheet==='board' && g){
     const rows=standings(g);
     body=`<h2>Leaderboard</h2><p class="muted">Lowest score wins.</p>
@@ -434,7 +424,7 @@ function render(){
   if(html===lastHtml) return;
   const a=document.activeElement, id=a&&a.id, ss=a&&a.selectionStart;
   $('#app').innerHTML=html; lastHtml=html;
-  if(id && id!=='shareUrl'){ const n=document.getElementById(id); if(n){ n.focus(); try{ n.setSelectionRange(ss,ss); }catch(e){} } }
+  if(id){ const n=document.getElementById(id); if(n){ n.focus(); try{ n.setSelectionRange(ss,ss); }catch(e){} } }
   if(S.game && S.game.status==='done' && S.finalKey!==S.gid){ S.finalKey=S.gid; if($('#fin')) animateFinal(); }
   else if(S.game && S.game.status==='done') finishFinal();
 }
@@ -538,7 +528,6 @@ document.addEventListener('click',async e=>{
   else if(a==='hp'){ S.holes=Math.min(36,S.holes+1); }
   else if(a==='hs'){ S.holes=Number(el.dataset.n); }
   else if(a==='create') return create();
-  else if(a==='share'){ S.sheet='share'; }
   else if(a==='start') return start();
   else if(a==='join') return join();
   else if(a==='board'){ S.sheet='board'; }
@@ -554,8 +543,12 @@ document.addEventListener('click',async e=>{
   else if(a==='pic') return savePic();
   else if(a==='proxy'){ S.proxy=true; S.draft=2; }
   else if(a==='unproxy'){ S.proxy=false; }
-  else if(a==='nshare'){ try{ await navigator.share({title:'Join my mini golf game',text:'Join my mini golf game',url:APP_URL+'#'+S.gid}); }catch(err){} return; }
-  else if(a==='copy'){ const i=$('#shareUrl'); try{ await navigator.clipboard.writeText(i.value); toast('Link copied'); }catch(err){ i.focus(); i.select(); toast('Press and hold the link to copy it'); } return; }
+  else if(a==='share'){
+    const url=APP_URL+'#'+S.gid, code=S.gid.slice(1).toUpperCase(), text=`Join my mini golf game! Code: ${code}`;
+    if(navigator.share){ try{ await navigator.share({title:'Mini Golf',text,url}); }catch(err){} return; }
+    try{ await navigator.clipboard.writeText(text+' '+url); toast('Invite link copied'); }catch(err){ toast('Code: '+code); }
+    return;
+  }
   else if(a==='home'){ ls.set('mg_gid',''); location.hash=''; if(!S.gid) render(); return; }
   render();
 });
