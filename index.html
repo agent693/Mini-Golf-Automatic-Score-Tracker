@@ -68,7 +68,7 @@ input[type=text]:focus{border-color:var(--or);outline:0}
 .maxs .ar{display:flex;gap:8px}.maxs .ar button{width:52px;height:52px;border-radius:14px;background:#fff;color:var(--or);display:grid;place-items:center}.maxs .ar svg{width:26px;height:26px}
 .maxs .ar button:disabled,.arrows button:disabled{opacity:.35}
 .prow{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.modeb{flex:none;width:48px;height:48px;border-radius:14px;background:var(--bll);color:var(--bl);display:grid;place-items:center}.modeb svg{width:24px;height:24px}
+.modeb{flex:none;display:flex;gap:4px;padding:4px;border-radius:16px;background:var(--bll)}.modeb i{width:44px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--bl);opacity:.55;transition:background .2s,color .2s,opacity .2s}.modeb i.on{background:var(--bl);color:#fff;opacity:1}.modeb svg{width:22px;height:22px}
 .pick{display:grid;gap:10px;margin-top:18px}
 .pick button{min-height:72px;border-radius:18px;background:var(--bll);color:var(--bl);font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;display:grid;place-items:center;border:3px solid transparent}
 .pick button.on{background:var(--bl);color:#fff}
@@ -170,7 +170,7 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const rid = n => { const a='abcdefghjkmnpqrstuvwxyz23456789'; let s=''; for (const x of crypto.getRandomValues(new Uint32Array(n))) s+=a[x%a.length]; return s; };
 let store=null; try{ store=window.localStorage; }catch(e){}
 const ls={get:k=>{try{return store?.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{store?.setItem(k,v)}catch(e){}}};
-const S={pid:ls.get('mg_pid'),gid:'',game:null,players:[],loaded:false,slow:false,draft:2,draftKey:'',holes:9,maxOn:false,maxS:7,mode:ls.get('mg_mode')==='pick'?'pick':'add',picked:false,
+const S={pid:ls.get('mg_pid'),gid:'',game:null,players:[],loaded:false,slow:false,draft:2,draftKey:'',holes:9,maxOn:false,maxS:7,mode:ls.get('mg_mode2')==='add'?'add':'pick',picked:false,
   hostName:ls.get('mg_name'),joinName:ls.get('mg_name'),joining:false,joined:false,sheet:null,sheetAt:0,proxy:false,
   pending:null,lastSeen:undefined,peers:[],err:'',dbState:'wait',finalKey:''};
 if(!S.pid){ S.pid='p'+rid(10); ls.set('mg_pid',S.pid); }
@@ -386,7 +386,7 @@ function play(g){
   let main;
   if(entering){
     const pick=S.mode==='pick';
-    main=`<div class="card"><div class="prow"><span class="pill">${mine?'Your turn':'Entering for '+esc(nameOf(g,cur))}</span><button class="modeb" data-a="mode" aria-label="${pick?'Switch to arrows':'Switch to number boxes'}">${pick?ICON.updown:ICON.grid}</button></div>
+    main=`<div class="card"><div class="prow"><span class="pill">${mine?'Your turn':'Entering for '+esc(nameOf(g,cur))}</span><button class="modeb" data-a="mode" role="switch" aria-checked="${pick}" aria-label="Number boxes"><i class="${pick?'on':''}">${ICON.grid}</i><i class="${pick?'':'on'}">${ICON.updown}</i></button></div>
       ${pick?pickGrid(g):`<div class="step"><div class="num" aria-live="polite">${S.draft}${g.maxStrokes&&S.draft>=g.maxStrokes?'+':''}</div>
       <div class="arrows"><button data-a="up" aria-label="Add a stroke" ${S.draft>=capOf(g)?'disabled':''}>${ICON.up}</button><button data-a="down" aria-label="Remove a stroke" ${S.draft<=1?'disabled':''}>${ICON.down}</button></div></div>`}
       <button class="check" data-a="check" aria-label="Submit score" ${pick&&!S.picked?'disabled':''}>${ICON.check}</button>
@@ -578,9 +578,9 @@ document.addEventListener('click',async e=>{
   else if(a==='joincode') return joinByCode();
   else if(a==='endask'){ S.sheet='end'; S.sheetAt=Date.now(); }
   else if(a==='endyes'){ if(Date.now()-S.sheetAt<450) return; return endOrLeave(); }
-  else if(a==='mode'){ S.mode=S.mode==='pick'?'add':'pick'; ls.set('mg_mode',S.mode); if(S.mode==='pick' && S.draft>(g&&g.maxStrokes&&g.maxStrokes<=10?g.maxStrokes:9)) S.picked=false; }
+  else if(a==='mode'){ S.mode=S.mode==='pick'?'add':'pick'; ls.set('mg_mode2',S.mode); if(S.mode==='pick' && S.draft>(g&&g.maxStrokes&&g.maxStrokes<=10?g.maxStrokes:9)) S.picked=false; }
   else if(a==='pk'){ S.draft=Number(el.dataset.n); S.picked=true; ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
-  else if(a==='pkmore'){ S.mode='add'; ls.set('mg_mode','add'); S.draft=Math.min(10,capOf(g)); S.picked=true; ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
+  else if(a==='pkmore'){ S.mode='add'; ls.set('mg_mode2','add'); S.draft=Math.min(10,capOf(g)); S.picked=true; ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
   else if(a==='check'){ if(S.mode==='pick'&&!S.picked) return; S.sheet='confirm'; S.sheetAt=Date.now(); }
   else if(a==='yes'){ if(Date.now()-S.sheetAt<450) return; return submit(); }
   else if(a==='pic') return savePic();
