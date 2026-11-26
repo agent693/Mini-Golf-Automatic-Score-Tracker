@@ -409,15 +409,14 @@ function spectator(g){
 }
 function finalView(g){
   const hp=holesPlayed(g);
-  if(hp<1) return shell(`<div class="card"><p class="kick">Game ended</p><h2>No holes were finished</h2><p class="muted">The game ended before anyone finished a hole.</p><button class="primary" data-a="home">New game</button><button class="primary bluebtn" data-a="joinfromgame" style="margin-top:10px">Join a game</button></div>`);
+  if(hp<1) return shell(`<div class="card"><p class="kick">Game ended</p><h2>No holes were finished</h2><p class="muted">The game ended before anyone finished a hole.</p><button class="primary" data-a="home">Play again</button></div>`);
   const rows=standings(g), max=Math.max(1,...rows.map(r=>r.tot)), best=rows[0]?rows[0].tot:0, wins=rows.filter(r=>r.tot===best);
   const wn=wins.length>1?wins.map(w=>esc(nameOf(g,w.pid))).join(' & ')+' tie!':(wins[0]?(wins[0].pid===S.pid?'You win!':esc(wins[0].name)+' wins!'):'');
   S.winHtml=`${ICON.trophy}<div class="wn">${wn}</div><div class="ws">${best} strokes · ${hp} hole${hp===1?'':'s'}${hp<g.holes?' (ended early)':''}</div>`;
   return `<div class="win" id="win">${ICON.trophy}<div class="wn">${wn}</div><div class="ws">${best} strokes · ${hp} hole${hp===1?'':'s'}${hp<g.holes?' (ended early)':''}</div></div>
     <div class="card shrink"><p class="kick">Final scores</p><div id="fin" class="fill">${rows.map(r=>`<div class="fr ${r.tot===best?'w':''}"><span class="rk">${r.rank}</span><span class="nm">${esc(nameOf(g,r.pid))}</span><span class="cnt" data-to="${r.tot}">0</span><div class="fb"><i data-w="${(r.tot/max*100).toFixed(1)}"></i></div></div>`).join('')}</div></div>
     <button class="link" data-a="board" style="color:#fff;align-self:center">View full scorecard</button>
-    <div class="endrow"><button class="primary" data-a="pic">Save picture</button><button class="primary" data-a="home">New game</button></div>
-    <button class="primary bluebtn" data-a="joinfromgame" style="margin-top:10px">Join a game</button>`;
+    <div class="endrow"><button class="primary" data-a="pic">Save picture</button><button class="primary" data-a="home">Play again</button></div>`;
 }
 function scoreTable(g){
   const rows=standings(g), hs=Array.from({length:holesPlayed(g)},(_,i)=>i+1);
