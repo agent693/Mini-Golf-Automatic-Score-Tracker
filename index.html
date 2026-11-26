@@ -67,7 +67,6 @@ input[type=text]:focus{border-color:var(--or);outline:0}
 .maxs .v{font-size:34px;font-weight:800;color:var(--or);font-variant-numeric:tabular-nums}.maxs .v small{font-size:16px;font-weight:600;color:var(--mut);margin-left:6px}
 .maxs .ar{display:flex;gap:8px}.maxs .ar button{width:52px;height:52px;border-radius:14px;background:#fff;color:var(--or);display:grid;place-items:center}.maxs .ar svg{width:26px;height:26px}
 .maxs .ar button:disabled,.arrows button:disabled{opacity:.35}
-.cap{margin-left:8px;font-size:14px;font-weight:600;color:var(--mut)}
 .plist{list-style:none;margin:0;padding:0}
 .plist li{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-weight:600}
 .plist li:first-child{border-top:0}
@@ -369,8 +368,8 @@ function play(g){
   const cur=g.order[g.turn], mine=cur===S.pid, host=g.hostId===S.pid, entering=mine||(S.proxy&&host);
   let main;
   if(entering){
-    main=`<div class="card"><span class="pill">${mine?'Your turn':'Entering for '+esc(nameOf(g,cur))}</span>${g.maxStrokes?`<span class="cap">Max ${g.maxStrokes}</span>`:''}
-      <div class="step"><div class="num" aria-live="polite">${S.draft}</div>
+    main=`<div class="card"><span class="pill">${mine?'Your turn':'Entering for '+esc(nameOf(g,cur))}</span>
+      <div class="step"><div class="num" aria-live="polite">${S.draft}${g.maxStrokes&&S.draft>=g.maxStrokes?'+':''}</div>
       <div class="arrows"><button data-a="up" aria-label="Add a stroke" ${S.draft>=capOf(g)?'disabled':''}>${ICON.up}</button><button data-a="down" aria-label="Remove a stroke" ${S.draft<=1?'disabled':''}>${ICON.down}</button></div></div>
       <button class="check" data-a="check" aria-label="Submit score">${ICON.check}</button>
       ${!mine?'<button class="link" data-a="unproxy">Cancel</button>':''}</div>`;
@@ -405,7 +404,7 @@ function sheet(){
   let body='';
   if(S.sheet==='confirm' && g){
     const cur=g.order[g.turn];
-    body=`${cur!==S.pid?`<p class="kick">For ${esc(nameOf(g,cur))}</p>`:''}<div class="bigq">Submit ${S.draft} stroke${S.draft===1?'':'s'}?</div><p class="muted">This can't be changed after it's in.</p>
+    body=`${cur!==S.pid?`<p class="kick">For ${esc(nameOf(g,cur))}</p>`:''}<div class="bigq">Submit ${S.draft}${g.maxStrokes&&S.draft>=g.maxStrokes?'+':''} stroke${S.draft===1?'':'s'}?</div><p class="muted">This can't be changed after it's in.</p>
       <div class="row"><button class="ghost" data-a="close">Cancel</button><button class="primary" data-a="yes" style="margin:0">Submit</button></div>`;
   } else if(S.sheet==='board' && g){
     const rows=standings(g);
