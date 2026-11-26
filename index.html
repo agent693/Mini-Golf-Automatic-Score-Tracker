@@ -74,6 +74,8 @@ input[type=text]:focus{border-color:var(--or);outline:0}
 .pick button.on{background:var(--bl);color:#fff}
 .pick button:active{transform:scale(.96)}.pick svg{width:28px;height:28px}
 .check:disabled{opacity:.4}
+.hero{align-items:stretch;text-align:center;gap:14px}.hero .primary{margin:0;font-size:20px;min-height:64px}.hero .hwhite{background:#fff;color:var(--or)}
+.hlogo svg{width:120px;height:120px;filter:drop-shadow(0 8px 16px rgba(120,40,0,.25))}.htitle{color:#fff;font-size:40px;font-weight:800;line-height:1;margin:0 0 22px}
 .plist{list-style:none;margin:0;padding:0}
 .plist li{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-weight:600}
 .plist li:first-child{border-top:0}
@@ -265,7 +267,7 @@ async function create(){
   const gid='g'+rid(6); S.creating=true; render();
   try{
     await db.ref('games/'+gid).set({holes:S.holes,maxStrokes:S.maxOn?S.maxS:null,hostId:S.pid,status:'lobby',hole:1,turn:0,created:Date.now()});
-    location.hash=gid;
+    S.page=''; location.hash=gid;
   }catch(e){ toast("Couldn't create the game. Check your connection."); }
   S.creating=false; render();
 }
@@ -331,15 +333,20 @@ async function joinByCode(){
 /* ---------- views ---------- */
 const shell=(inner,x,back)=>`<div class="brand">${back?`<button class="xbtn" data-a="goback" aria-label="Back">${ICON.back}</button>`:ICON.logo}<span>Mini Golf</span>${x?`<button class="xbtn" data-a="endask" aria-label="${x}">${ICON.x}</button>`:''}</div><div class="mid">${inner}</div>`;
 function home(){
-  return shell(`<div class="card"><h1>New game</h1><p class="muted">Pick the course length, then invite your group.</p>
+  return `<div class="mid hero"><div class="hlogo">${ICON.logo}</div><div class="htitle">Mini Golf</div>
+    <button class="primary hwhite" data-a="createask" ${!db?'disabled':''}>Create game</button>
+    <button class="primary bluebtn" data-a="joinask" ${!db?'disabled':''}>Join game</button>
+    ${!db?'<p class="center" style="color:#fff;margin-top:14px">This site needs its database connected before games can start.</p>':''}</div>`;
+}
+function createPage(){
+  return `<div class="brand"><button class="xbtn" data-a="back" aria-label="Back">${ICON.back}</button><span>Create game</span></div>
+    <div class="mid"><div class="card"><h1>New game</h1><p class="muted">Pick the course length, then invite your group.</p>
     <label>Number of holes</label>
     <div class="holes"><button data-a="hm" aria-label="Fewer holes">−</button><output>${S.holes}</output><button data-a="hp" aria-label="More holes">+</button></div>
     <div class="chips">${[9,18].map(n=>`<button data-a="hs" data-n="${n}" class="${S.holes===n?'on':''}">${n} holes</button>`).join('')}</div>
     <div class="opt"><span id="maxLbl">Max strokes per hole</span><button class="sw ${S.maxOn?'on':''}" data-a="maxt" role="switch" aria-checked="${S.maxOn}" aria-labelledby="maxLbl"></button></div>
     ${S.maxOn?`<div class="maxs"><div class="v">${S.maxS}<small>stroke${S.maxS===1?'':'s'}</small></div><div class="ar"><button data-a="maxd" aria-label="Lower max strokes" ${S.maxS<=1?'disabled':''}>${ICON.down}</button><button data-a="maxu" aria-label="Raise max strokes" ${S.maxS>=20?'disabled':''}>${ICON.up}</button></div></div>`:''}
-    <button class="primary" data-a="create" ${S.creating||!db?'disabled':''}>${S.creating?'Creating…':'Create game'}</button>
-    ${!db?'<p class="muted center" style="margin-top:12px">This site needs its database connected before games can start.</p>':''}</div>
-    <button class="primary bluebtn" data-a="joinask" ${!db?'disabled':''} style="margin-top:14px;flex:none">Join a game</button>`);
+    <button class="primary" data-a="create" ${S.creating||!db?'disabled':''}>${S.creating?'Creating…':'Create game'}</button></div></div>`;
 }
 function joinPage(){
   return `<div class="brand"><button class="xbtn" data-a="back" aria-label="Back">${ICON.back}</button><span>Join a game</span></div>
@@ -450,7 +457,7 @@ function sheet(){
 }
 function view(){
   if(S.dbState==='wait') return shell('<p class="center" style="color:#fff">Loading…</p>');
-  if(!S.gid) return S.page==='join'?joinPage():home();
+  if(!S.gid) return S.page==='join'?joinPage():S.page==='create'?createPage():home();
   if(!db) return shell('<div class="card"><h2>Almost ready</h2><p class="muted">This site needs its database connected before games can start.</p></div>');
   if(!S.loaded) return shell(`<div class="card"><p class="muted center">${S.slow?"Can't reach the game yet. Check your connection.":'Opening game…'}</p></div>`);
   const g=S.game;
@@ -588,6 +595,7 @@ document.addEventListener('click',async e=>{
   else if(a==='close'){ S.sheet=null; }
   else if(a==='up'){ S.picked=true; S.draft=Math.min(capOf(g),S.draft+1); ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
   else if(a==='down'){ S.picked=true; S.draft=Math.max(1,S.draft-1); ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
+  else if(a==='createask'){ S.page='create'; }
   else if(a==='joinask'){ S.page='join'; S.code=''; S.codeErr=false; render(); const i=$('#joinCode'); if(i) i.focus(); return; }
   else if(a==='back'){ S.page=''; S.code=''; S.codeErr=false; }
   else if(a==='joincode') return joinByCode();
