@@ -363,8 +363,8 @@ function hostLobby(g){
   const others=S.players.filter(p=>p.id!==S.pid);
   return shell(`<div class="card shrink"><p class="kick">${g.holes} holes${g.maxStrokes?` · max ${g.maxStrokes} strokes`:''}</p><h1>Lobby</h1>
     <button class="codebox" data-a="copycode" aria-label="Copy game code"><span>${S.copied?'Copied!':'Game code'}${S.copied?'':ICON.copy}</span><b>${esc(S.gid.slice(1).toUpperCase())}</b></button>
+    <button class="ghost blue" data-a="share" style="width:100%;margin-top:10px">Share</button>
     <label for="hostName">Your name</label><input type="text" id="hostName" maxlength="24" autocomplete="off" value="${esc(S.hostName)}" placeholder="Enter your name">
-    <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Share</button>
     <h3>Players joined</h3>
     <div class="fill">${others.length?`<ul class="plist">${others.map(p=>`<li><span class="av">${initial(p.name)}</span><span>${esc(p.name)}</span></li>`).join('')}</ul>`:'<p class="muted">No one yet. Share the invite so friends can join.</p>'}</div>
     <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start</button></div>`,'Cancel game');
