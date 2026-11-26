@@ -25,12 +25,14 @@
    LAYOUT: one centred column, 460px max, controls in thumb reach. */
 :root{color-scheme:light;--bg:#ff7a2e;--bg2:#ff9447;--card:#fff;--or:#f0590f;--orl:#fff1e8;--bl:#1a87cc;--bll:#e3f1fb;--ink:#1d2333;--mut:#7d8496;--line:#f2e8e1}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-body{margin:0;background:linear-gradient(170deg,var(--bg2),var(--bg) 55%);background-attachment:fixed;color:var(--ink);font:16px/1.5 Outfit,system-ui,sans-serif;position:fixed;inset:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{margin:0;background:var(--bg) linear-gradient(170deg,var(--bg2),var(--bg) 55%) no-repeat;color:var(--ink);font:16px/1.5 Outfit,system-ui,sans-serif;position:fixed;inset:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input{-webkit-user-select:text;user-select:text}
 #app{max-width:460px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));height:100%;display:flex;flex-direction:column;overflow:hidden}
 #app>*{flex:none}
-#app>.shrink{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}
+#app>.mid{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center;padding-bottom:6vh}
+#app .shrink{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}
 .fill{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 button{font:inherit;cursor:pointer;border:0;color:inherit}
 button:focus-visible,input:focus-visible{outline:3px solid var(--bl);outline-offset:2px}
@@ -346,10 +348,10 @@ function play(g){
       <div class="wait"><span class="dots"><i></i><i></i><i></i></span>You'll be up ${g.order.indexOf(S.pid)>g.turn?'soon':'next hole'}</div>
       ${host?`<button class="link" data-a="proxy">Enter score for ${esc(nameOf(g,cur))}</button>`:''}</div>`;
   }
-  return topbar(g)+main+(g.order.length>1?`<div class="card shrink" style="padding-block:10px"><div class="fill">${holeList(g)}</div></div>`:'');
+  return topbar(g)+`<div class="mid">`+main+(g.order.length>1?`<div class="card shrink" style="padding-block:10px"><div class="fill">${holeList(g)}</div></div>`:'')+`</div>`;
 }
 function spectator(g){
-  return topbar(g)+`<div class="card"><h2>Game in progress</h2><p class="muted">This game started before you joined. You can follow the leaderboard.</p></div>`;
+  return topbar(g)+`<div class="mid"><div class="card"><h2>Game in progress</h2><p class="muted">This game started before you joined. You can follow the leaderboard.</p></div></div>`;
 }
 function finalView(g){
   const hp=holesPlayed(g);
