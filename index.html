@@ -324,7 +324,7 @@ function hostLobby(g){
     <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Share</button>
     <h3>Players joined</h3>
     <div class="fill">${others.length?`<ul class="plist">${others.map(p=>`<li><span class="av">${initial(p.name)}</span><span>${esc(p.name)}</span></li>`).join('')}</ul>`:'<p class="muted">No one yet. Share the invite so friends can join.</p>'}</div>
-    <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start game</button></div>`,'Cancel game');
+    <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start</button></div>`,'Cancel game');
 }
 function joinForm(g){
   return shell(`<div class="card"><p class="kick">${g.holes} holes</p><h1>Join the game</h1>
