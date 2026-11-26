@@ -59,6 +59,15 @@ input[type=text]:focus{border-color:var(--or);outline:0}
 .chips{display:flex;gap:8px;margin-top:10px}
 .chips button{flex:1;padding:10px;border-radius:12px;background:#fff;border:2px solid var(--line);font-weight:600;color:var(--mut);min-height:44px}
 .chips button.on{border-color:var(--or);color:var(--or)}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}.opt span{font-weight:600;font-size:14px;color:var(--mut)}
+.sw{flex:none;position:relative;width:56px;height:34px;border-radius:999px;background:var(--line);transition:background .2s}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.18);transition:transform .2s}
+.sw.on{background:var(--or)}.sw.on::after{transform:translateX(22px)}
+.maxs{display:flex;align-items:center;justify-content:space-between;margin-top:10px;background:var(--orl);border-radius:18px;padding:8px 8px 8px 20px}
+.maxs .v{font-size:34px;font-weight:800;color:var(--or);font-variant-numeric:tabular-nums}.maxs .v small{font-size:16px;font-weight:600;color:var(--mut);margin-left:6px}
+.maxs .ar{display:flex;gap:8px}.maxs .ar button{width:52px;height:52px;border-radius:14px;background:#fff;color:var(--or);display:grid;place-items:center}.maxs .ar svg{width:26px;height:26px}
+.maxs .ar button:disabled,.arrows button:disabled{opacity:.35}
+.cap{margin-left:8px;font-size:14px;font-weight:600;color:var(--mut)}
 .plist{list-style:none;margin:0;padding:0}
 .plist li{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-weight:600}
 .plist li:first-child{border-top:0}
@@ -155,7 +164,7 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const rid = n => { const a='abcdefghjkmnpqrstuvwxyz23456789'; let s=''; for (const x of crypto.getRandomValues(new Uint32Array(n))) s+=a[x%a.length]; return s; };
 let store=null; try{ store=window.localStorage; }catch(e){}
 const ls={get:k=>{try{return store?.getItem(k)||''}catch(e){return ''}},set:(k,v)=>{try{store?.setItem(k,v)}catch(e){}}};
-const S={pid:ls.get('mg_pid'),gid:'',game:null,players:[],loaded:false,slow:false,draft:2,draftKey:'',holes:9,
+const S={pid:ls.get('mg_pid'),gid:'',game:null,players:[],loaded:false,slow:false,draft:2,draftKey:'',holes:9,maxOn:false,maxS:7,
   hostName:ls.get('mg_name'),joinName:ls.get('mg_name'),joining:false,joined:false,sheet:null,sheetAt:0,proxy:false,
   pending:null,lastSeen:undefined,peers:[],err:'',dbState:'wait',finalKey:''};
 if(!S.pid){ S.pid='p'+rid(10); ls.set('mg_pid',S.pid); }
@@ -182,6 +191,7 @@ function standings(g, upto){
   rows.forEach(r=>r.rank=1+rows.filter(x=>x.tot<r.tot).length);
   return rows;
 }
+const capOf=g=>(g&&g.maxStrokes)||20;
 const toArr=o=>Array.isArray(o)?o:Object.values(o||{});
 const nameOf=(g,pid)=>pid===S.pid?'You':((g.names||{})[pid]||'Player');
 const initial=s=>esc((String(s||'?').trim()[0]||'?').toUpperCase());
@@ -230,7 +240,7 @@ function onGame(){
   if(S.lastSeen===undefined) S.lastSeen=L;
   else if(L!==S.lastSeen){ S.lastSeen=L; if(g.status==='playing') showTransition(g); }
   if(g.status==='playing'){
-    const k=g.hole+'-'+g.turn; if(S.draftKey!==k){ S.draftKey=k; const d=ls.get('mg_draft').split('|'); S.draft=(d[0]===S.gid&&d[1]===k)?Math.max(1,Math.min(20,Number(d[2])||2)):2; S.proxy=false; if(S.sheet==='confirm') S.sheet=null; }
+    const k=g.hole+'-'+g.turn; if(S.draftKey!==k){ S.draftKey=k; const d=ls.get('mg_draft').split('|'); const cap=capOf(g); S.draft=(d[0]===S.gid&&d[1]===k)?Math.max(1,Math.min(cap,Number(d[2])||2)):Math.min(2,cap); S.proxy=false; if(S.sheet==='confirm') S.sheet=null; }
   }
 }
 
@@ -239,7 +249,7 @@ async function create(){
   if(!db) return toast('This site still needs its database set up.');
   const gid='g'+rid(6); S.creating=true; render();
   try{
-    await db.ref('games/'+gid).set({holes:S.holes,hostId:S.pid,status:'lobby',hole:1,turn:0,created:Date.now()});
+    await db.ref('games/'+gid).set({holes:S.holes,maxStrokes:S.maxOn?S.maxS:null,hostId:S.pid,status:'lobby',hole:1,turn:0,created:Date.now()});
     location.hash=gid;
   }catch(e){ toast("Couldn't create the game. Check your connection."); }
   S.creating=false; render();
@@ -276,7 +286,7 @@ async function submit(){
       if(cur.status!=='playing' || cur.hole!==h || cur.turn!==t || o[t]!==forPid) return;
       cur.scores=cur.scores||{};
       const mine={}; for(const [k,v] of Object.entries(cur.scores[forPid]||{})) if(v!=null) mine[k]=v;
-      mine[h]=score; cur.scores[forPid]=mine;
+      mine[h]=Math.min(score,capOf(cur)); cur.scores[forPid]=mine;
       if(t+1<o.length) cur.turn=t+1;
       else if(h>=cur.holes){ cur.status='done'; cur.last={hole:h,at:Date.now()}; }
       else { cur.hole=h+1; cur.turn=0; cur.last={hole:h,at:Date.now()}; }
@@ -310,6 +320,8 @@ function home(){
     <label>Number of holes</label>
     <div class="holes"><button data-a="hm" aria-label="Fewer holes">−</button><output>${S.holes}</output><button data-a="hp" aria-label="More holes">+</button></div>
     <div class="chips">${[9,18].map(n=>`<button data-a="hs" data-n="${n}" class="${S.holes===n?'on':''}">${n} holes</button>`).join('')}</div>
+    <div class="opt"><span id="maxLbl">Max strokes per hole</span><button class="sw ${S.maxOn?'on':''}" data-a="maxt" role="switch" aria-checked="${S.maxOn}" aria-labelledby="maxLbl"></button></div>
+    ${S.maxOn?`<div class="maxs"><div class="v">${S.maxS}<small>stroke${S.maxS===1?'':'s'}</small></div><div class="ar"><button data-a="maxu" aria-label="Raise max strokes" ${S.maxS>=20?'disabled':''}>${ICON.up}</button><button data-a="maxd" aria-label="Lower max strokes" ${S.maxS<=1?'disabled':''}>${ICON.down}</button></div></div>`:''}
     <button class="primary" data-a="create" ${S.creating||!db?'disabled':''}>${S.creating?'Creating…':'Create game'}</button>
     ${!db?'<p class="muted center" style="margin-top:12px">This site needs its database connected before games can start.</p>':''}</div>
     <button class="primary bluebtn" data-a="joinask" ${!db?'disabled':''} style="margin-top:14px;flex:none">Join a game</button>`,null,!!S.backTo);
@@ -326,7 +338,7 @@ function plist(g){
 }
 function hostLobby(g){
   const others=S.players.filter(p=>p.id!==S.pid);
-  return shell(`<div class="card shrink"><p class="kick">${g.holes} holes</p><h1>Lobby</h1>
+  return shell(`<div class="card shrink"><p class="kick">${g.holes} holes${g.maxStrokes?` · max ${g.maxStrokes} strokes`:''}</p><h1>Lobby</h1>
     <div class="codebox"><span>Game code</span><b>${esc(S.gid.slice(1).toUpperCase())}</b></div>
     <label for="hostName">Your name</label><input type="text" id="hostName" maxlength="24" autocomplete="off" value="${esc(S.hostName)}" placeholder="Enter your name">
     <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Share</button>
@@ -335,7 +347,7 @@ function hostLobby(g){
     <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start</button></div>`,'Cancel game');
 }
 function joinForm(g){
-  return shell(`<div class="card"><p class="kick">${g.holes} holes</p><h1>Join the game</h1>
+  return shell(`<div class="card"><p class="kick">${g.holes} holes${g.maxStrokes?` · max ${g.maxStrokes} strokes`:''}</p><h1>Join the game</h1>
     <label for="joinName">Your name</label><input type="text" id="joinName" maxlength="24" autocomplete="off" value="${esc(S.joinName)}" placeholder="Enter your name">
     <button class="primary" id="joinBtn" data-a="join" ${S.joinName.trim()&&!S.joining?'':'disabled'}>${S.joining?'Joining…':'Join'}</button></div>`,'Leave');
 }
@@ -357,9 +369,9 @@ function play(g){
   const cur=g.order[g.turn], mine=cur===S.pid, host=g.hostId===S.pid, entering=mine||(S.proxy&&host);
   let main;
   if(entering){
-    main=`<div class="card"><span class="pill">${mine?'Your turn':'Entering for '+esc(nameOf(g,cur))}</span>
+    main=`<div class="card"><span class="pill">${mine?'Your turn':'Entering for '+esc(nameOf(g,cur))}</span>${g.maxStrokes?`<span class="cap">Max ${g.maxStrokes}</span>`:''}
       <div class="step"><div class="num" aria-live="polite">${S.draft}</div>
-      <div class="arrows"><button data-a="up" aria-label="Add a stroke">${ICON.up}</button><button data-a="down" aria-label="Remove a stroke">${ICON.down}</button></div></div>
+      <div class="arrows"><button data-a="up" aria-label="Add a stroke" ${S.draft>=capOf(g)?'disabled':''}>${ICON.up}</button><button data-a="down" aria-label="Remove a stroke" ${S.draft<=1?'disabled':''}>${ICON.down}</button></div></div>
       <button class="check" data-a="check" aria-label="Submit score">${ICON.check}</button>
       ${!mine?'<button class="link" data-a="unproxy">Cancel</button>':''}</div>`;
   } else {
@@ -534,12 +546,15 @@ document.addEventListener('click',async e=>{
   if(a==='hm'){ S.holes=Math.max(1,S.holes-1); }
   else if(a==='hp'){ S.holes=Math.min(36,S.holes+1); }
   else if(a==='hs'){ S.holes=Number(el.dataset.n); }
+  else if(a==='maxt'){ S.maxOn=!S.maxOn; }
+  else if(a==='maxu'){ S.maxS=Math.min(20,S.maxS+1); }
+  else if(a==='maxd'){ S.maxS=Math.max(1,S.maxS-1); }
   else if(a==='create') return create();
   else if(a==='start') return start();
   else if(a==='join') return join();
   else if(a==='board'){ S.sheet='board'; }
   else if(a==='close'){ S.sheet=null; }
-  else if(a==='up'){ S.draft=Math.min(20,S.draft+1); ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
+  else if(a==='up'){ S.draft=Math.min(capOf(g),S.draft+1); ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
   else if(a==='down'){ S.draft=Math.max(1,S.draft-1); ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
   else if(a==='joinask'){ S.page='join'; S.code=''; S.codeErr=false; render(); const i=$('#joinCode'); if(i) i.focus(); return; }
   else if(a==='back'){ S.page=''; S.code=''; S.codeErr=false; }
@@ -549,7 +564,7 @@ document.addEventListener('click',async e=>{
   else if(a==='check'){ S.sheet='confirm'; S.sheetAt=Date.now(); }
   else if(a==='yes'){ if(Date.now()-S.sheetAt<450) return; return submit(); }
   else if(a==='pic') return savePic();
-  else if(a==='proxy'){ S.proxy=true; S.draft=2; }
+  else if(a==='proxy'){ S.proxy=true; S.draft=Math.min(2,capOf(g)); }
   else if(a==='unproxy'){ S.proxy=false; }
   else if(a==='share'){
     const url=APP_URL+'#'+S.gid, code=S.gid.slice(1).toUpperCase(), text=`Join my mini golf game! Code: ${code}`;
