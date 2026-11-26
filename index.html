@@ -70,6 +70,7 @@ input[type=text]:focus{border-color:var(--or);outline:0}
 .brand .xbtn{margin-left:auto}.top .l{display:flex;align-items:center;gap:12px}
 .danger{background:#d93a1a}
 .bluebtn{background:var(--bl)}
+.codebox{flex:none;margin-top:12px;background:var(--orl);border-radius:16px;padding:10px 12px 12px;text-align:center}.codebox span{display:block;font-size:13px;font-weight:600;color:var(--mut)}.codebox b{display:block;font-size:40px;line-height:1.1;font-weight:800;letter-spacing:.14em;color:var(--or);padding-left:.14em}
 .codein{text-align:center;font-size:30px!important;font-weight:800!important;letter-spacing:.18em;text-transform:uppercase;color:var(--bl)!important}
 .lbBtn{background:#fff;color:var(--bl);font-weight:700;padding:10px 16px;border-radius:999px;min-height:44px;display:flex;align-items:center;gap:6px}
 .prog{display:flex;gap:4px;margin:0 4px 16px}
@@ -317,9 +318,10 @@ function plist(g){
 }
 function hostLobby(g){
   const others=S.players.filter(p=>p.id!==S.pid);
-  return shell(`<div class="card shrink"><p class="kick">${g.holes} holes · code ${esc(S.gid.slice(1).toUpperCase())}</p><h1>Lobby</h1>
+  return shell(`<div class="card shrink"><p class="kick">${g.holes} holes</p><h1>Lobby</h1>
+    <div class="codebox"><span>Game code</span><b>${esc(S.gid.slice(1).toUpperCase())}</b></div>
     <label for="hostName">Your name</label><input type="text" id="hostName" maxlength="24" autocomplete="off" value="${esc(S.hostName)}" placeholder="Enter your name">
-    <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Share invite</button>
+    <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Send invite</button>
     <h3>Players joined · ${others.length}</h3>
     <div class="fill">${others.length?`<ul class="plist">${others.map(p=>`<li><span class="av">${initial(p.name)}</span><span>${esc(p.name)}</span></li>`).join('')}</ul>`:'<p class="muted">No one yet. Share the invite so friends can join.</p>'}</div>
     <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start game</button></div>`,'Cancel game');
