@@ -75,7 +75,7 @@ input[type=text]:focus{border-color:var(--or);outline:0}
 .pick button:active{transform:scale(.96)}.pick svg{width:28px;height:28px}
 .check:disabled{opacity:.4}
 .hero{align-items:stretch;text-align:center;gap:14px}.hero .primary{margin:0;font-size:20px;min-height:64px}.hero .hwhite{background:#fff;color:var(--or)}
-.hlogo svg{width:120px;height:120px;filter:drop-shadow(0 8px 16px rgba(120,40,0,.25))}.htitle{color:#fff;font-size:40px;font-weight:800;line-height:1;margin:0 0 22px}
+.hlogo svg{width:120px;height:120px;filter:drop-shadow(0 8px 16px rgba(120,40,0,.25))}.htitle{color:#fff;font-size:40px;font-weight:800;line-height:1;margin:0}.hsub{color:#fff;opacity:.9;font-size:20px;font-weight:600;letter-spacing:.04em;margin:-6px 0 22px}
 .plist{list-style:none;margin:0;padding:0}
 .plist li{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-weight:600}
 .plist li:first-child{border-top:0}
@@ -334,7 +334,7 @@ async function joinByCode(){
 /* ---------- views ---------- */
 const shell=(inner,x,back)=>`<div class="brand">${back?`<button class="xbtn" data-a="goback" aria-label="Back">${ICON.back}</button>`:ICON.logo}<span>Mini Golf</span>${x?`<button class="xbtn" data-a="endask" aria-label="${x}">${ICON.x}</button>`:''}</div><div class="mid">${inner}</div>`;
 function home(){
-  return `<div class="mid hero"><div class="hlogo">${ICON.logo}</div><div class="htitle">Mini Golf</div>
+  return `<div class="mid hero"><div class="hlogo">${ICON.logo}</div><div class="htitle">Mini Golf</div><div class="hsub">Score Keeper</div>
     <button class="primary hwhite" data-a="createask" ${!db?'disabled':''}>Create game</button>
     <button class="primary bluebtn" data-a="joinask" ${!db?'disabled':''}>Join game</button>
     ${!db?'<p class="center" style="color:#fff;margin-top:14px">This site needs its database connected before games can start.</p>':''}</div>`;
