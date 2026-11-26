@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "games": {
+      "$gid": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$gid.matches(/^g[a-z0-9]{4,12}$/)"
+      }
+    }
+  }
+}
