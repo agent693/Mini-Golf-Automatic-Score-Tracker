@@ -321,7 +321,7 @@ function home(){
     <div class="holes"><button data-a="hm" aria-label="Fewer holes">−</button><output>${S.holes}</output><button data-a="hp" aria-label="More holes">+</button></div>
     <div class="chips">${[9,18].map(n=>`<button data-a="hs" data-n="${n}" class="${S.holes===n?'on':''}">${n} holes</button>`).join('')}</div>
     <div class="opt"><span id="maxLbl">Max strokes per hole</span><button class="sw ${S.maxOn?'on':''}" data-a="maxt" role="switch" aria-checked="${S.maxOn}" aria-labelledby="maxLbl"></button></div>
-    ${S.maxOn?`<div class="maxs"><div class="v">${S.maxS}<small>stroke${S.maxS===1?'':'s'}</small></div><div class="ar"><button data-a="maxu" aria-label="Raise max strokes" ${S.maxS>=20?'disabled':''}>${ICON.up}</button><button data-a="maxd" aria-label="Lower max strokes" ${S.maxS<=1?'disabled':''}>${ICON.down}</button></div></div>`:''}
+    ${S.maxOn?`<div class="maxs"><div class="v">${S.maxS}<small>stroke${S.maxS===1?'':'s'}</small></div><div class="ar"><button data-a="maxd" aria-label="Lower max strokes" ${S.maxS<=1?'disabled':''}>${ICON.down}</button><button data-a="maxu" aria-label="Raise max strokes" ${S.maxS>=20?'disabled':''}>${ICON.up}</button></div></div>`:''}
     <button class="primary" data-a="create" ${S.creating||!db?'disabled':''}>${S.creating?'Creating…':'Create game'}</button>
     ${!db?'<p class="muted center" style="margin-top:12px">This site needs its database connected before games can start.</p>':''}</div>
     <button class="primary bluebtn" data-a="joinask" ${!db?'disabled':''} style="margin-top:14px;flex:none">Join a game</button>`,null,!!S.backTo);
