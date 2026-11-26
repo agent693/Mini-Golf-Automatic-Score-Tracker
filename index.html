@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mini Golf Scores</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -20,9 +20,13 @@
    LAYOUT: one centred column, 460px max, controls in thumb reach. */
 :root{color-scheme:light;--bg:#ff7a2e;--bg2:#ff9447;--card:#fff;--or:#f0590f;--orl:#fff1e8;--bl:#1a87cc;--bll:#e3f1fb;--ink:#1d2333;--mut:#7d8496;--line:#f2e8e1}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
-body{margin:0;background:linear-gradient(170deg,var(--bg2),var(--bg) 55%);background-attachment:fixed;color:var(--ink);font:16px/1.5 Outfit,system-ui,sans-serif;overflow-x:clip}
-#app{max-width:460px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px max(28px,env(safe-area-inset-bottom));min-height:100%}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{margin:0;background:linear-gradient(170deg,var(--bg2),var(--bg) 55%);background-attachment:fixed;color:var(--ink);font:16px/1.5 Outfit,system-ui,sans-serif;position:fixed;inset:0;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input{-webkit-user-select:text;user-select:text}
+#app{max-width:460px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));height:100%;display:flex;flex-direction:column;overflow:hidden}
+#app>*{flex:none}
+#app>.shrink{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}
+.fill{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 button{font:inherit;cursor:pointer;border:0;color:inherit}
 button:focus-visible,input:focus-visible{outline:3px solid var(--bl);outline-offset:2px}
 .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:22px;margin:4px 4px 18px}
@@ -109,7 +113,7 @@ td.t{font-weight:800;color:var(--bl);font-size:18px}
 @keyframes grow{to{width:var(--b)}}
 .ovc .primary{background:#fff;color:var(--or)}
 .endrow{display:flex;gap:10px}.endrow .primary{flex:1;background:#fff;color:var(--or)}.endrow .primary:first-child{color:var(--bl)}
-.pic{display:block;width:100%;border-radius:16px;margin:12px 0;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.pic{-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;display:block;width:100%;border-radius:16px;margin:12px 0;box-shadow:0 4px 14px rgba(0,0,0,.12)}
 /* final */
 .fr{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line)}
 .fr:first-child{border-top:0}
@@ -284,11 +288,11 @@ function plist(g){
 }
 function hostLobby(g){
   const others=S.players.filter(p=>p.id!==S.pid);
-  return shell(`<div class="card"><p class="kick">${g.holes} holes · code ${esc(S.gid.slice(1).toUpperCase())}</p><h1>Lobby</h1>
+  return shell(`<div class="card shrink"><p class="kick">${g.holes} holes · code ${esc(S.gid.slice(1).toUpperCase())}</p><h1>Lobby</h1>
     <label for="hostName">Your name</label><input type="text" id="hostName" maxlength="24" autocomplete="off" value="${esc(S.hostName)}" placeholder="Enter your name">
     <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Share invite link</button>
     <h3>Players joined · ${others.length}</h3>
-    ${others.length?`<ul class="plist">${others.map(p=>`<li><span class="av">${initial(p.name)}</span><span>${esc(p.name)}</span></li>`).join('')}</ul>`:'<p class="muted">No one yet. Share the invite so friends can join.</p>'}
+    <div class="fill">${others.length?`<ul class="plist">${others.map(p=>`<li><span class="av">${initial(p.name)}</span><span>${esc(p.name)}</span></li>`).join('')}</ul>`:'<p class="muted">No one yet. Share the invite so friends can join.</p>'}</div>
     <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start game</button></div>`);
 }
 function joinForm(g){
@@ -300,7 +304,7 @@ function waiting(g){
   const ok=S.joined;
   return shell(`<div class="card center"><p class="kick">${ok?"You're in":'Connecting to host'}</p><h2>Waiting for host to start</h2>
     <div class="dots" style="margin:12px 0 4px"><i></i><i></i><i></i></div></div>
-    <div class="card"><h3 style="margin-top:0">Players</h3>${plist(g)}</div>`);
+    <div class="card shrink"><h3 style="margin-top:0">Players</h3><div class="fill">${plist(g)}</div></div>`);
 }
 function holeList(g){
   return `<ul class="plist">${g.order.map((pid,i)=>{ const v=((g.scores||{})[pid]||{})[g.hole];
@@ -324,7 +328,7 @@ function play(g){
       <div class="wait"><span class="dots"><i></i><i></i><i></i></span>You'll be up ${g.order.indexOf(S.pid)>g.turn?'soon':'next hole'}</div>
       ${host?`<button class="link" data-a="proxy">Enter score for ${esc(nameOf(g,cur))}</button>`:''}</div>`;
   }
-  return topbar(g)+main+(g.order.length>1?`<div class="card" style="padding-block:10px">${holeList(g)}</div>`:'');
+  return topbar(g)+main+(g.order.length>1?`<div class="card shrink" style="padding-block:10px"><div class="fill">${holeList(g)}</div></div>`:'');
 }
 function spectator(g){
   return topbar(g)+`<div class="card"><h2>Game in progress</h2><p class="muted">This game started before you joined. You can follow the leaderboard.</p></div>`;
@@ -333,8 +337,8 @@ function finalView(g){
   const rows=standings(g), max=Math.max(1,...rows.map(r=>r.tot)), best=rows[0]?rows[0].tot:0, wins=rows.filter(r=>r.tot===best);
   const wn=wins.length>1?wins.map(w=>esc(nameOf(g,w.pid))).join(' & ')+' tie!':(wins[0]?(wins[0].pid===S.pid?'You win!':esc(wins[0].name)+' wins!'):'');
   return `<div class="win" id="win">${ICON.trophy}<div class="wn">${wn}</div><div class="ws">${best} strokes · ${g.holes} holes</div></div>
-    <div class="card"><p class="kick">Final scores</p><div id="fin">${rows.map(r=>`<div class="fr ${r.tot===best?'w':''}"><span class="rk">${r.rank}</span><span class="nm">${esc(nameOf(g,r.pid))}</span><span class="cnt" data-to="${r.tot}">0</span><div class="fb"><i data-w="${(r.tot/max*100).toFixed(1)}"></i></div></div>`).join('')}</div></div>
-    <div class="card" style="padding:12px"><div class="scroll">${scoreTable(g)}</div></div>
+    <div class="card shrink"><p class="kick">Final scores</p><div id="fin" class="fill">${rows.map(r=>`<div class="fr ${r.tot===best?'w':''}"><span class="rk">${r.rank}</span><span class="nm">${esc(nameOf(g,r.pid))}</span><span class="cnt" data-to="${r.tot}">0</span><div class="fb"><i data-w="${(r.tot/max*100).toFixed(1)}"></i></div></div>`).join('')}</div></div>
+    <button class="link" data-a="board" style="color:#fff;align-self:center">View full scorecard</button>
     <div class="endrow"><button class="primary" data-a="pic">Save picture</button><button class="primary" data-a="home">New game</button></div>`;
 }
 function scoreTable(g){
@@ -508,6 +512,13 @@ document.addEventListener('input',e=>{
   if(e.target.id==='hostName'){ S.hostName=e.target.value; const b=$('#startBtn'); if(b) b.disabled=!S.hostName.trim(); saveHostName(); }
   if(e.target.id==='joinName'){ S.joinName=e.target.value; const b=$('#joinBtn'); if(b) b.disabled=!S.joinName.trim(); }
 });
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+document.addEventListener('touchmove',e=>{
+  if(e.touches.length>1){ e.preventDefault(); return; }
+  const s=e.target.closest('.fill,.sheet,.scroll');
+  if(!s || (s.scrollHeight<=s.clientHeight+1 && s.scrollWidth<=s.clientWidth+1)) e.preventDefault();
+},{passive:false});
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter' && e.target.id==='joinName' && S.joinName.trim()) join();
   if(e.key==='Escape' && S.sheet){ S.sheet=null; render(); }
