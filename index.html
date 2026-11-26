@@ -60,6 +60,9 @@ input[type=text]:focus{border-color:var(--or);outline:0}
 .tag{margin-left:auto;font-size:13px;color:var(--mut);font-weight:500}
 .top{display:flex;align-items:center;justify-content:space-between;color:#fff;margin:0 4px 14px}
 .top .h{font-size:20px;font-weight:500}.top .h b{font-size:34px;font-weight:800}
+.xbtn{flex:none;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);color:#fff;display:grid;place-items:center}.xbtn svg{width:20px;height:20px}
+.brand .xbtn{margin-left:auto}.top .l{display:flex;align-items:center;gap:12px}
+.danger{background:#d93a1a}
 .lbBtn{background:#fff;color:var(--bl);font-weight:700;padding:10px 16px;border-radius:999px;min-height:44px;display:flex;align-items:center;gap:6px}
 .prog{display:flex;gap:4px;margin:0 4px 16px}
 .prog i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.35)}
@@ -151,6 +154,7 @@ const S={pid:ls.get('mg_pid'),gid:'',game:null,players:[],loaded:false,slow:fals
 if(!S.pid){ S.pid='p'+rid(10); ls.set('mg_pid',S.pid); }
 let db=null, unsubG=null, timer=null, nameT=null, errT=null;
 const ICON={
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>',
   down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>',
@@ -160,8 +164,9 @@ const ICON={
 };
 
 /* ---------- data helpers ---------- */
+const holesPlayed=g=>(g.status==='done' && typeof g.played==='number')?g.played:g.holes;
 function standings(g, upto){
-  const last = upto || g.holes;
+  const last = upto ?? holesPlayed(g);
   const rows = (g.order||[]).map(pid=>{ const sc=(g.scores||{})[pid]||{}; let tot=0, played=0;
     for(let h=1;h<=last;h++){ const v=sc[h]; if(typeof v==='number'){ tot+=v; played++; } }
     return {pid, name:(g.names||{})[pid]||'Player', tot, played, sc}; });
@@ -191,7 +196,7 @@ function route(){
   unsubG&&unsubG(); unsubG=null;
   Object.assign(S,{gid,game:null,players:[],loaded:false,slow:false,joined:false,lastSeen:undefined,sheet:null,proxy:false,finalKey:'',png:null});
   $('#ovl').innerHTML='';
-  if(gid && db) subscribe();
+  if(gid){ ls.set('mg_gid',gid); if(db) subscribe(); }
   render();
 }
 function subscribe(){
@@ -216,7 +221,7 @@ function onGame(){
   if(S.lastSeen===undefined) S.lastSeen=L;
   else if(L!==S.lastSeen){ S.lastSeen=L; if(g.status==='playing') showTransition(g); }
   if(g.status==='playing'){
-    const k=g.hole+'-'+g.turn; if(S.draftKey!==k){ S.draftKey=k; S.draft=2; S.proxy=false; if(S.sheet==='confirm') S.sheet=null; }
+    const k=g.hole+'-'+g.turn; if(S.draftKey!==k){ S.draftKey=k; const d=ls.get('mg_draft').split('|'); S.draft=(d[0]===S.gid&&d[1]===k)?Math.max(1,Math.min(20,Number(d[2])||2)):2; S.proxy=false; if(S.sheet==='confirm') S.sheet=null; }
   }
 }
 
@@ -272,8 +277,16 @@ async function submit(){
   }catch(e){ toast("Couldn't save. Check your signal and try again."); }
 }
 
+async function endOrLeave(){
+  const g=S.game; S.sheet=null;
+  if(!g){ render(); return; }
+  if(g.hostId!==S.pid){ ls.set('mg_gid',''); location.hash=''; return; }
+  const patch=g.status==='lobby'?{status:'done',played:0}:{status:'done',played:Math.max(0,g.hole-1),last:{hole:g.hole,at:Date.now()}};
+  try{ await gref().update(patch); }catch(e){ toast("Couldn't end the game. Try again."); }
+  render();
+}
 /* ---------- views ---------- */
-const shell=inner=>`<div class="brand">${ICON.logo}<span>Mini Golf</span></div>${inner}`;
+const shell=(inner,x)=>`<div class="brand">${ICON.logo}<span>Mini Golf</span>${x?`<button class="xbtn" data-a="endask" aria-label="${x}">${ICON.x}</button>`:''}</div>${inner}`;
 function home(){
   return shell(`<div class="card"><h1>New game</h1><p class="muted">Pick the course length, then invite your group.</p>
     <label>Number of holes</label>
@@ -293,25 +306,25 @@ function hostLobby(g){
     <button class="ghost blue" data-a="share" style="width:100%;margin-top:14px">Share invite link</button>
     <h3>Players joined · ${others.length}</h3>
     <div class="fill">${others.length?`<ul class="plist">${others.map(p=>`<li><span class="av">${initial(p.name)}</span><span>${esc(p.name)}</span></li>`).join('')}</ul>`:'<p class="muted">No one yet. Share the invite so friends can join.</p>'}</div>
-    <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start game</button></div>`);
+    <button class="primary" id="startBtn" data-a="start" ${S.hostName.trim()?'':'disabled'}>Start game</button></div>`,'Cancel game');
 }
 function joinForm(g){
   return shell(`<div class="card"><p class="kick">${g.holes} holes</p><h1>Join the game</h1>
     <label for="joinName">Your name</label><input type="text" id="joinName" maxlength="24" autocomplete="off" value="${esc(S.joinName)}" placeholder="Enter your name">
-    <button class="primary" id="joinBtn" data-a="join" ${S.joinName.trim()&&!S.joining?'':'disabled'}>${S.joining?'Joining…':'Join'}</button></div>`);
+    <button class="primary" id="joinBtn" data-a="join" ${S.joinName.trim()&&!S.joining?'':'disabled'}>${S.joining?'Joining…':'Join'}</button></div>`,'Leave');
 }
 function waiting(g){
   const ok=S.joined;
   return shell(`<div class="card center"><p class="kick">${ok?"You're in":'Connecting to host'}</p><h2>Waiting for host to start</h2>
     <div class="dots" style="margin:12px 0 4px"><i></i><i></i><i></i></div></div>
-    <div class="card shrink"><h3 style="margin-top:0">Players</h3><div class="fill">${plist(g)}</div></div>`);
+    <div class="card shrink"><h3 style="margin-top:0">Players</h3><div class="fill">${plist(g)}</div></div>`,'Leave game');
 }
 function holeList(g){
   return `<ul class="plist">${g.order.map((pid,i)=>{ const v=((g.scores||{})[pid]||{})[g.hole];
     return `<li class="${i===g.turn?'now':''}"><span class="av">${initial((g.names||{})[pid])}</span><span>${esc(nameOf(g,pid))}</span>${typeof v==='number'?`<span class="sc">${v}</span>`:`<span class="tag">${i===g.turn?'Putting now':'Up next'}</span>`}</li>`; }).join('')}</ul>`;
 }
 function topbar(g){
-  return `<div class="top"><div class="h">Hole <b>${g.hole}</b> of ${g.holes}</div><button class="lbBtn" data-a="board">${ICON.board}Leaderboard</button></div>
+  return `<div class="top"><div class="l"><button class="xbtn" data-a="endask" aria-label="${g.hostId===S.pid?'End game':'Leave game'}">${ICON.x}</button><div class="h">Hole <b>${g.hole}</b> of ${g.holes}</div></div><button class="lbBtn" data-a="board">${ICON.board}Leaderboard</button></div>
     <div class="prog">${Array.from({length:g.holes},(_,i)=>`<i class="${i+1<g.hole?'d':i+1===g.hole?'c':''}"></i>`).join('')}</div>`;
 }
 function play(g){
@@ -334,15 +347,17 @@ function spectator(g){
   return topbar(g)+`<div class="card"><h2>Game in progress</h2><p class="muted">This game started before you joined. You can follow the leaderboard.</p></div>`;
 }
 function finalView(g){
+  const hp=holesPlayed(g);
+  if(hp<1) return shell(`<div class="card"><p class="kick">Game ended</p><h2>No holes were finished</h2><p class="muted">The game ended before anyone finished a hole.</p><button class="primary" data-a="home">New game</button></div>`);
   const rows=standings(g), max=Math.max(1,...rows.map(r=>r.tot)), best=rows[0]?rows[0].tot:0, wins=rows.filter(r=>r.tot===best);
   const wn=wins.length>1?wins.map(w=>esc(nameOf(g,w.pid))).join(' & ')+' tie!':(wins[0]?(wins[0].pid===S.pid?'You win!':esc(wins[0].name)+' wins!'):'');
-  return `<div class="win" id="win">${ICON.trophy}<div class="wn">${wn}</div><div class="ws">${best} strokes · ${g.holes} holes</div></div>
+  return `<div class="win" id="win">${ICON.trophy}<div class="wn">${wn}</div><div class="ws">${best} strokes · ${hp} hole${hp===1?'':'s'}${hp<g.holes?' (ended early)':''}</div></div>
     <div class="card shrink"><p class="kick">Final scores</p><div id="fin" class="fill">${rows.map(r=>`<div class="fr ${r.tot===best?'w':''}"><span class="rk">${r.rank}</span><span class="nm">${esc(nameOf(g,r.pid))}</span><span class="cnt" data-to="${r.tot}">0</span><div class="fb"><i data-w="${(r.tot/max*100).toFixed(1)}"></i></div></div>`).join('')}</div></div>
     <button class="link" data-a="board" style="color:#fff;align-self:center">View full scorecard</button>
     <div class="endrow"><button class="primary" data-a="pic">Save picture</button><button class="primary" data-a="home">New game</button></div>`;
 }
 function scoreTable(g){
-  const rows=standings(g), hs=Array.from({length:g.holes},(_,i)=>i+1);
+  const rows=standings(g), hs=Array.from({length:holesPlayed(g)},(_,i)=>i+1);
   return `<table><thead><tr><th class="n">Player</th>${hs.map(h=>`<th>${h}</th>`).join('')}<th>Total</th></tr></thead><tbody>
     ${rows.map(r=>`<tr><td class="n"><span class="rk">${r.rank}</span>${esc(nameOf(g,r.pid))}</td>${hs.map(h=>`<td>${typeof r.sc[h]==='number'?r.sc[h]:'·'}</td>`).join('')}<td class="t">${r.tot}</td></tr>`).join('')}</tbody></table>`;
 }
@@ -365,6 +380,13 @@ function sheet(){
     body=`<h2>Leaderboard</h2><p class="muted">Lowest score wins.</p>
       <ul class="plist" style="margin-top:8px">${rows.map(r=>`<li><span class="rk">${r.rank}</span><span>${esc(nameOf(g,r.pid))}</span><span class="tag">thru ${r.played}</span><span class="sc" style="margin-left:12px">${r.tot}</span></li>`).join('')}</ul>
       <h3>Scorecard</h3><div class="scroll">${scoreTable(g)}</div><div class="row"><button class="ghost" data-a="close">Close</button></div>`;
+  } else if(S.sheet==='end' && g){
+    const host=g.hostId===S.pid, lobby=g.status==='lobby', done=Math.max(0,g.hole-1);
+    body=host
+      ? `<div class="bigq">${lobby?'Cancel this game?':'End game for everyone?'}</div><p class="muted">${lobby?'Everyone in the lobby will be sent out.':(done?`Final scores use the ${done} finished hole${done===1?'':'s'}. Hole ${g.hole} won't count.`:'No holes are finished yet, so there will be no scores.')}</p>
+        <div class="row"><button class="ghost" data-a="close">Keep playing</button><button class="primary danger" data-a="endyes" style="margin:0">${lobby?'Cancel game':'End game'}</button></div>`
+      : `<div class="bigq">Leave this game?</div><p class="muted">The game keeps going for everyone else. You can rejoin from the invite link.</p>
+        <div class="row"><button class="ghost" data-a="close">Stay</button><button class="primary danger" data-a="endyes" style="margin:0">Leave</button></div>`;
   } else if(S.sheet==='pic' && S.png){
     body=`<h2>Save picture</h2><img class="pic" src="${esc(S.png.url)}" alt="Final scorecard"><p class="muted">Press and hold the picture to save it to your photos.</p><a class="ghost blue" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${esc(S.png.url)}" download="mini-golf-scores.png">Download</a>
       <div class="row"><button class="ghost" data-a="close">Done</button></div>`;
@@ -377,7 +399,7 @@ function view(){
   if(!db) return shell('<div class="card"><h2>Almost ready</h2><p class="muted">This site needs its database connected before games can start.</p></div>');
   if(!S.loaded) return shell(`<div class="card"><p class="muted center">${S.slow?"Can't reach the game yet. Check your connection.":'Opening game…'}</p></div>`);
   const g=S.game;
-  if(!g) return shell('<div class="card"><h2>Game not found</h2><p class="muted">This invite may be old.</p><button class="primary" data-a="home">Start a new game</button></div>');
+  if(!g){ ls.set('mg_gid',''); return shell('<div class="card"><h2>Game not found</h2><p class="muted">This invite may be old.</p><button class="primary" data-a="home">Start a new game</button></div>'); }
   if(g.status==='lobby') return g.hostId===S.pid?hostLobby(g):S.joined?waiting(g):joinForm(g);
   if(g.status==='done') return finalView(g);
   if(!g.order.includes(S.pid)) return spectator(g);
@@ -428,7 +450,7 @@ function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);
 function fit(c,t,w){ t=String(t); if(c.measureText(t).width<=w) return t; while(t.length>1 && c.measureText(t+'…').width>w) t=t.slice(0,-1); return t+'…'; }
 async function makePng(g){
   try{ await Promise.all([document.fonts.load('800 40px Outfit'),document.fonts.load('700 30px Outfit'),document.fonts.load('500 20px Outfit')]); }catch(e){}
-  const rows=standings(g), n=rows.length, W=1080, P=64, rowH=72, chunks=Math.ceil(g.holes/9), cr=48;
+  const rows=standings(g), n=rows.length, W=1080, P=64, rowH=72, chunks=Math.max(1,Math.ceil(holesPlayed(g)/9)), cr=48, HP=holesPlayed(g);
   const st=320, sH=n*rowH+40, gt=st+sH+36, gH=chunks*(64+n*cr)+30, H=gt+gH+70;
   const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const c=cv.getContext('2d');
   const F=(w,s)=>`${w} ${s}px Outfit, system-ui, sans-serif`;
@@ -441,7 +463,7 @@ async function makePng(g){
   const wt=wins.length>1?wins.map(w=>w.name).join(' & ')+' tie!':(wins[0]?wins[0].name+' wins!':'');
   let fs=76; c.font=F(800,fs); while(fs>44 && c.measureText(wt).width>W-2*P){ fs-=4; c.font=F(800,fs); }
   c.fillText(fit(c,wt,W-2*P),P,200);
-  c.font=F(500,30); c.fillText(`${best} strokes · ${g.holes} holes`,P,250);
+  c.font=F(500,30); c.fillText(`${best} strokes · ${HP} hole${HP===1?'':'s'}`,P,250);
   c.fillStyle='#fff'; rr(c,P-24,st,W-2*P+48,sH,32); c.fill();
   rows.forEach((r,i)=>{ const y0=st+20+i*rowH, y=y0+rowH/2+12;
     if(i){ c.fillStyle='#f2e8e1'; c.fillRect(P,y0,W-2*P,2); }
@@ -451,7 +473,7 @@ async function makePng(g){
   c.fillStyle='#fff'; rr(c,P-24,gt,W-2*P+48,gH,32); c.fill();
   const nameW=230, cx=P+nameW, cw=(W-2*P-nameW-90)/9, tx=W-P-4;
   for(let k=0;k<chunks;k++){
-    const y0=gt+24+k*(64+n*cr), hs=[]; for(let h=k*9+1;h<=Math.min(g.holes,k*9+9);h++) hs.push(h);
+    const y0=gt+24+k*(64+n*cr), hs=[]; for(let h=k*9+1;h<=Math.min(HP,k*9+9);h++) hs.push(h);
     c.font=F(500,24); c.fillStyle='#7d8496'; c.textAlign='center';
     hs.forEach((h,j)=>c.fillText(String(h),cx+cw*j+cw/2,y0+30));
     if(k===chunks-1){ c.textAlign='right'; c.fillText('Total',tx,y0+30); }
@@ -496,8 +518,10 @@ document.addEventListener('click',async e=>{
   else if(a==='join') return join();
   else if(a==='board'){ S.sheet='board'; }
   else if(a==='close'){ S.sheet=null; }
-  else if(a==='up'){ S.draft=Math.min(20,S.draft+1); }
-  else if(a==='down'){ S.draft=Math.max(1,S.draft-1); }
+  else if(a==='up'){ S.draft=Math.min(20,S.draft+1); ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
+  else if(a==='down'){ S.draft=Math.max(1,S.draft-1); ls.set('mg_draft',S.gid+'|'+S.draftKey+'|'+S.draft); }
+  else if(a==='endask'){ S.sheet='end'; S.sheetAt=Date.now(); }
+  else if(a==='endyes'){ if(Date.now()-S.sheetAt<450) return; return endOrLeave(); }
   else if(a==='check'){ S.sheet='confirm'; S.sheetAt=Date.now(); }
   else if(a==='yes'){ if(Date.now()-S.sheetAt<450) return; return submit(); }
   else if(a==='pic') return savePic();
@@ -505,7 +529,7 @@ document.addEventListener('click',async e=>{
   else if(a==='unproxy'){ S.proxy=false; }
   else if(a==='nshare'){ try{ await navigator.share({title:'Join my mini golf game',text:'Join my mini golf game',url:APP_URL+'#'+S.gid}); }catch(err){} return; }
   else if(a==='copy'){ const i=$('#shareUrl'); try{ await navigator.clipboard.writeText(i.value); toast('Link copied'); }catch(err){ i.focus(); i.select(); toast('Press and hold the link to copy it'); } return; }
-  else if(a==='home'){ location.hash=''; if(!S.gid) render(); return; }
+  else if(a==='home'){ ls.set('mg_gid',''); location.hash=''; if(!S.gid) render(); return; }
   render();
 });
 document.addEventListener('input',e=>{
@@ -523,6 +547,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter' && e.target.id==='joinName' && S.joinName.trim()) join();
   if(e.key==='Escape' && S.sheet){ S.sheet=null; render(); }
 });
+if(!/^#g[a-z0-9]{4,12}$/.test(location.hash||'')){ const sv=ls.get('mg_gid'); if(/^g[a-z0-9]{4,12}$/.test(sv)) history.replaceState(null,'',location.pathname+location.search+'#'+sv); }
 route();
 }
 </script>
