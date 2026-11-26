@@ -145,7 +145,7 @@ td.t{font-weight:800;color:var(--bl);font-size:18px}
 .fr .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fr .cnt{font-size:26px;font-weight:800;color:var(--bl);font-variant-numeric:tabular-nums;text-align:right}
 .fr .fb{grid-column:2/4;height:8px;border-radius:4px;background:var(--bll);overflow:hidden}
-.fr .fb i{display:block;height:100%;width:0;background:var(--bl);border-radius:4px;transition:width 1.8s cubic-bezier(.2,.7,.2,1)}
+.fr .fb i{display:block;height:100%;width:0;background:var(--bl);border-radius:4px}
 .fr.w .fb i{background:var(--or)}.fr.w .cnt{color:var(--or)}
 .win{text-align:center;color:#fff;margin:6px 0 18px;opacity:0;transform:scale(.6)}
 .win.go{animation:pop .7s cubic-bezier(.2,1.6,.4,1) forwards}
@@ -153,6 +153,10 @@ td.t{font-weight:800;color:var(--bl);font-size:18px}
 .win .wn{font-size:40px;font-weight:800;line-height:1.05;text-wrap:balance}
 .win .ws{font-size:18px;opacity:.9}
 @keyframes pop{to{opacity:1;transform:none}}
+.wpop{position:fixed;inset:0;z-index:32;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:rgba(255,122,46,.35);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:fade .3s}
+.wpop .win{margin:0}.wpop .win svg{width:150px;height:150px}.wpop .win .wn{font-size:46px}
+.wpop .tap{color:#fff;font-weight:600;opacity:0;margin-top:28px;animation:pop .4s 1.2s forwards}
+.wpop.out{animation:fadeout .25s ease-in forwards}
 .conf{position:fixed;inset:0;pointer-events:none;z-index:35;overflow:hidden}
 .conf i{position:absolute;top:-20px;left:50%;width:10px;height:14px;border-radius:2px;animation:fall var(--t) var(--d) cubic-bezier(.3,.6,.6,1) forwards}
 @keyframes fall{to{transform:translate(var(--x),110vh) rotate(var(--r))}}
@@ -406,6 +410,7 @@ function finalView(g){
   if(hp<1) return shell(`<div class="card"><p class="kick">Game ended</p><h2>No holes were finished</h2><p class="muted">The game ended before anyone finished a hole.</p><button class="primary" data-a="home">New game</button><button class="primary bluebtn" data-a="joinfromgame" style="margin-top:10px">Join a game</button></div>`);
   const rows=standings(g), max=Math.max(1,...rows.map(r=>r.tot)), best=rows[0]?rows[0].tot:0, wins=rows.filter(r=>r.tot===best);
   const wn=wins.length>1?wins.map(w=>esc(nameOf(g,w.pid))).join(' & ')+' tie!':(wins[0]?(wins[0].pid===S.pid?'You win!':esc(wins[0].name)+' wins!'):'');
+  S.winHtml=`${ICON.trophy}<div class="wn">${wn}</div><div class="ws">${best} strokes · ${hp} hole${hp===1?'':'s'}${hp<g.holes?' (ended early)':''}</div>`;
   return `<div class="win" id="win">${ICON.trophy}<div class="wn">${wn}</div><div class="ws">${best} strokes · ${hp} hole${hp===1?'':'s'}${hp<g.holes?' (ended early)':''}</div></div>
     <div class="card shrink"><p class="kick">Final scores</p><div id="fin" class="fill">${rows.map(r=>`<div class="fr ${r.tot===best?'w':''}"><span class="rk">${r.rank}</span><span class="nm">${esc(nameOf(g,r.pid))}</span><span class="cnt" data-to="${r.tot}">0</span><div class="fb"><i data-w="${(r.tot/max*100).toFixed(1)}"></i></div></div>`).join('')}</div></div>
     <button class="link" data-a="board" style="color:#fff;align-self:center">View full scorecard</button>
@@ -481,20 +486,27 @@ function showTransition(g){
 function finishFinal(){
   document.querySelectorAll('#fin .cnt').forEach(c=>c.textContent=c.dataset.to);
   document.querySelectorAll('#fin .fb i').forEach(b=>b.style.width=b.dataset.w+'%');
-  const w=$('#win'); if(w) w.classList.add('go');
+  const w=$('#win'); if(w && S.winShown) w.classList.add('go');
 }
 function animateFinal(){
-  $('#ovl').innerHTML='';
+  $('#ovl').innerHTML=''; S.winShown=false;
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduce) return finishFinal();
+  if(reduce){ finishFinal(); return winner(); }
+  const max=Math.max(1,...[...document.querySelectorAll('#fin .cnt')].map(c=>Number(c.dataset.to)||0));
+  const D=Math.min(4000,Math.max(2200,max*55)); // one shared speed: every bar grows at the same rate
   requestAnimationFrame(()=>{
-    document.querySelectorAll('#fin .fb i').forEach(b=>b.style.width=b.dataset.w+'%');
-    const t0=performance.now(), D=1800;
-    const tick=now=>{ const p=Math.min(1,(now-t0)/D), e=1-Math.pow(1-p,3);
-      document.querySelectorAll('#fin .cnt').forEach(c=>c.textContent=Math.round(e*Number(c.dataset.to)));
-      if(p<1) requestAnimationFrame(tick); else setTimeout(winner,300); };
+    const t0=performance.now();
+    const tick=now=>{ const p=Math.min(1,(now-t0)/D), v=p*max;
+      document.querySelectorAll('#fin .fr').forEach(r=>{ const c=r.querySelector('.cnt'), b=r.querySelector('.fb i'), to=Number(c.dataset.to)||0;
+        c.textContent=Math.min(to,Math.floor(v)); b.style.width=(Math.min(to,v)/max*100)+'%'; });
+      if(p<1) requestAnimationFrame(tick); else { finishFinal(); setTimeout(winner,350); } };
     requestAnimationFrame(tick);
   });
+}
+function closeWin(){
+  const o=$('#ovl .wpop'); S.winShown=true;
+  const w=$('#win'); if(w) w.classList.add('go');
+  if(!o) return; o.classList.add('out'); setTimeout(()=>{ if($('#ovl .wpop')===o) $('#ovl').innerHTML=''; },250);
 }
 /* ---------- scorecard picture ---------- */
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
@@ -548,7 +560,8 @@ async function savePic(){
 }
 function winner(){
   if(S.game && (!S.png || S.png.gid!==S.gid)) makePng(S.game).then(p=>{ S.png={...p,gid:S.gid}; }).catch(()=>{});
-  const w=$('#win'); if(w){ w.classList.add('go'); window.scrollTo({top:0,behavior:'smooth'}); }
+  if(!S.game || S.game.status!=='done' || !S.winHtml) return;
+  $('#ovl').innerHTML=`<div class="wpop" data-a="wclose" role="dialog" aria-label="Winner"><div class="win go">${S.winHtml}</div><p class="tap">Tap to continue</p></div>`;
   const c=document.createElement('div'); c.className='conf';
   const cols=['#fff','#1a87cc','#ffd2b3','#f0590f','#9fd2f2'];
   c.innerHTML=Array.from({length:60},(_,i)=>`<i style="background:${cols[i%5]};--x:${(Math.random()*120-60).toFixed(0)}vw;--r:${(Math.random()*900-450).toFixed(0)}deg;--d:${(Math.random()*.5).toFixed(2)}s;--t:${(2.2+Math.random()*1.6).toFixed(2)}s"></i>`).join('');
@@ -559,6 +572,7 @@ function winner(){
 document.addEventListener('click',async e=>{
   const el=e.target.closest('[data-a]'); if(!el) return;
   const a=el.dataset.a, g=S.game;
+  if(a==='wclose'){ closeWin(); return; }
   if(a==='ovclose'){ if(e.target.closest('.card')&&el.classList.contains('ov')) return; $('#ovl').innerHTML=''; return; }
   if(a==='hm'){ S.holes=Math.max(1,S.holes-1); }
   else if(a==='hp'){ S.holes=Math.min(36,S.holes+1); }
